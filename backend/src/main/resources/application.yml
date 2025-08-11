@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/XEPDB1
     driver-class-name: oracle.jdbc.OracleDriver
-    username: leaveapp_user
+    username: leaveapp_db
     password: leaveapp_password
     hikari:
       maximum-pool-size: 10
@@ -31,7 +31,9 @@ app:
 
 logging:
   level:
+    root: INFO
     com.leaveapp: DEBUG
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.zaxxer.hikari: DEBUG
