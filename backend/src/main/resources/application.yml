@@ -3,26 +3,24 @@ server:
 
 spring:
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
-    driver-class-name: oracle.jdbc.OracleDriver
-    username: leaveapp_user
-    password: leaveapp_password
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    h2:
+      console:
+        enabled: true
+        path: /h2-console
   
   jpa:
-    database-platform: org.hibernate.dialect.OracleDialect
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.OracleDialect
+        dialect: org.hibernate.dialect.H2Dialect
 
 app:
   jwt:
