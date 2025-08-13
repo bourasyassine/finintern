@@ -44,7 +44,7 @@ public class LeaveRequestService {
         request.setEmployee(employee);
         request.setStartDate(requestDto.getStartDate());
         request.setEndDate(requestDto.getEndDate());
-        request.setType(LeaveRequest.LeaveType.valueOf(requestDto.getType()));
+        request.setType(normalizeLeaveType(requestDto.getType()));
         request.setReason(requestDto.getReason());
         request.setStatus(LeaveRequest.Status.PENDING);
 
@@ -52,7 +52,7 @@ public class LeaveRequestService {
         return convertToDto(savedRequest);
     }
 
-    public LeaveRequestDto approveRequest(Long requestId, Long approverId) {
+    public LeaveRequestDto approveRequest(Long requestId, Long approverId, String comments) {
         LeaveRequest request = leaveRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
@@ -62,12 +62,13 @@ public class LeaveRequestService {
         request.setStatus(LeaveRequest.Status.APPROVED);
         request.setApprovedBy(approver);
         request.setApprovedAt(LocalDateTime.now());
+        request.setApproverComments(comments);
 
         LeaveRequest savedRequest = leaveRequestRepository.save(request);
         return convertToDto(savedRequest);
     }
 
-    public LeaveRequestDto rejectRequest(Long requestId, Long approverId) {
+    public LeaveRequestDto rejectRequest(Long requestId, Long approverId, String comments) {
         LeaveRequest request = leaveRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
@@ -77,6 +78,7 @@ public class LeaveRequestService {
         request.setStatus(LeaveRequest.Status.REJECTED);
         request.setApprovedBy(approver);
         request.setApprovedAt(LocalDateTime.now());
+        request.setApproverComments(comments);
 
         LeaveRequest savedRequest = leaveRequestRepository.save(request);
         return convertToDto(savedRequest);
@@ -95,12 +97,23 @@ public class LeaveRequestService {
         dto.setStatus(request.getStatus().name());
         dto.setCreatedAt(request.getCreatedAt());
         dto.setDurationInDays((int) request.getDurationInDays());
-        
         if (request.getApprovedBy() != null) {
             dto.setApprovedBy(request.getApprovedBy().getFirstName() + " " + request.getApprovedBy().getLastName());
             dto.setApprovedAt(request.getApprovedAt());
+            dto.setApproverComments(request.getApproverComments());
         }
-        
         return dto;
+    }
+
+    private LeaveRequest.LeaveType normalizeLeaveType(String clientType) {
+        if (clientType == null) {
+            throw new IllegalArgumentException("Leave type is required");
+        }
+        String normalized = clientType.trim().toUpperCase();
+        // Map values like "ANNUAL_LEAVE" -> "ANNUAL", "SICK_LEAVE" -> "SICK", etc.
+        if (normalized.endsWith("_LEAVE")) {
+            normalized = normalized.replace("_LEAVE", "");
+        }
+        return LeaveRequest.LeaveType.valueOf(normalized);
     }
 }

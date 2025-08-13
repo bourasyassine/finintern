@@ -1,9 +1,12 @@
 package com.leaveapp.controller;
 
+import com.leaveapp.dto.ApprovalRequest;
 import com.leaveapp.dto.LeaveRequestDto;
+import com.leaveapp.entity.User;
 import com.leaveapp.service.LeaveRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,8 +26,8 @@ public class LeaveRequestController {
     }
     
     @GetMapping("/my-requests")
-    public ResponseEntity<List<LeaveRequestDto>> getMyRequests(@RequestParam Long employeeId) {
-        List<LeaveRequestDto> requests = leaveRequestService.getRequestsByEmployee(employeeId);
+    public ResponseEntity<List<LeaveRequestDto>> getMyRequests(@AuthenticationPrincipal User currentUser) {
+        List<LeaveRequestDto> requests = leaveRequestService.getRequestsByEmployee(currentUser.getId());
         return ResponseEntity.ok(requests);
     }
     
@@ -35,20 +38,28 @@ public class LeaveRequestController {
     }
     
     @PostMapping
-    public ResponseEntity<LeaveRequestDto> createRequest(@RequestBody LeaveRequestDto requestDto) {
+    public ResponseEntity<LeaveRequestDto> createRequest(@AuthenticationPrincipal User currentUser,
+                                                         @RequestBody LeaveRequestDto requestDto) {
+        requestDto.setEmployeeId(currentUser.getId());
         LeaveRequestDto createdRequest = leaveRequestService.createRequest(requestDto);
         return ResponseEntity.ok(createdRequest);
     }
     
     @PatchMapping("/{id}/approve")
-    public ResponseEntity<LeaveRequestDto> approveRequest(@PathVariable Long id, @RequestParam Long approverId) {
-        LeaveRequestDto approvedRequest = leaveRequestService.approveRequest(id, approverId);
+    public ResponseEntity<LeaveRequestDto> approveRequest(@PathVariable Long id,
+                                                          @AuthenticationPrincipal User currentUser,
+                                                          @RequestBody(required = false) ApprovalRequest approvalRequest) {
+        String comments = approvalRequest != null ? approvalRequest.getComments() : null;
+        LeaveRequestDto approvedRequest = leaveRequestService.approveRequest(id, currentUser.getId(), comments);
         return ResponseEntity.ok(approvedRequest);
     }
     
     @PatchMapping("/{id}/reject")
-    public ResponseEntity<LeaveRequestDto> rejectRequest(@PathVariable Long id, @RequestParam Long approverId) {
-        LeaveRequestDto rejectedRequest = leaveRequestService.rejectRequest(id, approverId);
+    public ResponseEntity<LeaveRequestDto> rejectRequest(@PathVariable Long id,
+                                                         @AuthenticationPrincipal User currentUser,
+                                                         @RequestBody(required = false) ApprovalRequest approvalRequest) {
+        String comments = approvalRequest != null ? approvalRequest.getComments() : null;
+        LeaveRequestDto rejectedRequest = leaveRequestService.rejectRequest(id, currentUser.getId(), comments);
         return ResponseEntity.ok(rejectedRequest);
     }
 }
