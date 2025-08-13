@@ -1,7 +1,7 @@
 # Configuration pour l'environnement de développement avec Docker Oracle
 spring:
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521:ORCLCDB
+    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
     driver-class-name: oracle.jdbc.OracleDriver
     username: leaveapp_user
     password: leaveapp_password

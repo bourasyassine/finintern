@@ -55,13 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const userData = await response.json()
-        setUser(mapBackendUserToFrontend(userData.user))
+        const mapped = mapBackendUserToFrontend(userData.user)
+        setUser(mapped)
+        localStorage.setItem("auth-user-id", mapped.id)
       } else {
         localStorage.removeItem("auth-token")
+        localStorage.removeItem("auth-user-id")
       }
     } catch (error) {
       console.error("Auth check failed:", error)
       localStorage.removeItem("auth-token")
+      localStorage.removeItem("auth-user-id")
     } finally {
       setIsLoading(false)
     }
@@ -83,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("auth-token", data.token)
         const mappedUser = mapBackendUserToFrontend(data.user)
         setUser(mappedUser)
+        localStorage.setItem("auth-user-id", mappedUser.id)
 
         // Redirect based on role
         if (mappedUser.role === "hr") {
@@ -116,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Logout error:", error)
     } finally {
       localStorage.removeItem("auth-token")
+      localStorage.removeItem("auth-user-id")
       setUser(null)
       router.push("/login")
     }
