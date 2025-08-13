@@ -65,7 +65,8 @@ class ApiService {
   }
 
   async createLeaveRequest(requestData: {
-    leaveType: string
+    type?: string
+    leaveType?: string
     startDate: string
     endDate: string
     reason: string
@@ -75,7 +76,10 @@ class ApiService {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
-        ...requestData,
+        type: (requestData.type || requestData.leaveType || "").toUpperCase(),
+        startDate: requestData.startDate,
+        endDate: requestData.endDate,
+        reason: requestData.reason,
         priority: requestData.priority || "NORMAL",
       }),
     })
@@ -100,17 +104,10 @@ class ApiService {
     return this.handleResponse(response)
   }
 
-  // Users
-  async getUsers() {
-    const response = await fetch(`${API_BASE_URL}/users`, {
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse(response)
-  }
-
-  async getUserById(userId: string) {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-      headers: this.getAuthHeaders(),
+  // Analytics (fallback to frontend mock route)
+  async getAnalytics() {
+    const response = await fetch(`/api/analytics`, {
+      headers: { "Content-Type": "application/json" },
     })
     return this.handleResponse(response)
   }

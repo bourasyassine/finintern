@@ -31,15 +31,7 @@ public class AuthService {
         
         String token = jwtTokenProvider.generateToken(user);
 
-        UserDto userDto = new UserDto();
-        userDto.setId(user.getId());
-        userDto.setEmail(user.getEmail());
-        userDto.setFirstName(user.getFirstName());
-        userDto.setLastName(user.getLastName());
-        userDto.setDepartment(user.getDepartment());
-        userDto.setRole(user.getRole().name());
-        userDto.setAnnualLeaveBalance(user.getAnnualLeaveBalance());
-        userDto.setSickLeaveBalance(user.getSickLeaveBalance());
+        UserDto userDto = mapUserToDto(user);
 
         return new LoginResponse(token, userDto);
     }
@@ -59,16 +51,29 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        UserDto result = new UserDto();
-        result.setId(savedUser.getId());
-        result.setEmail(savedUser.getEmail());
-        result.setFirstName(savedUser.getFirstName());
-        result.setLastName(savedUser.getLastName());
-        result.setDepartment(savedUser.getDepartment());
-        result.setRole(savedUser.getRole().name());
-        result.setAnnualLeaveBalance(savedUser.getAnnualLeaveBalance());
-        result.setSickLeaveBalance(savedUser.getSickLeaveBalance());
+        return mapUserToDto(savedUser);
+    }
 
-        return result;
+    public UserDto verifyTokenAndGetUser(String token) {
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new RuntimeException("Invalid token");
+        }
+        String email = jwtTokenProvider.getEmailFromToken(token);
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        return mapUserToDto(user);
+    }
+
+    private UserDto mapUserToDto(User user) {
+        UserDto userDto = new UserDto();
+        userDto.setId(user.getId());
+        userDto.setEmail(user.getEmail());
+        userDto.setFirstName(user.getFirstName());
+        userDto.setLastName(user.getLastName());
+        userDto.setDepartment(user.getDepartment());
+        userDto.setRole(user.getRole().name());
+        userDto.setAnnualLeaveBalance(user.getAnnualLeaveBalance());
+        userDto.setSickLeaveBalance(user.getSickLeaveBalance());
+        return userDto;
     }
 }
