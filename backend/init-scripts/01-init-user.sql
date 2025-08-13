@@ -1,20 +1,13 @@
--- Script d'initialisation pour Oracle Docker
+-- Script d'initialisation pour Oracle Docker (gvenzl/oracle-xe)
 -- Ce script sera exécuté automatiquement au démarrage du conteneur
 
--- Attendre que la base de données soit prête
 WHENEVER SQLERROR EXIT SQL.SQLCODE;
 
--- Créer l'utilisateur leaveapp_user
-CREATE USER leaveapp_user IDENTIFIED BY leaveapp_password;
+-- Basculer vers le PDB XEPDB1
+ALTER SESSION SET CONTAINER = XEPDB1;
 
--- Attribuer les privilèges nécessaires
-GRANT CONNECT, RESOURCE, CREATE SESSION, CREATE TABLE, CREATE SEQUENCE TO leaveapp_user;
-GRANT UNLIMITED TABLESPACE TO leaveapp_user;
-GRANT CREATE VIEW TO leaveapp_user;
-GRANT CREATE PROCEDURE TO leaveapp_user;
-
--- Créer les tables
-CONNECT leaveapp_user/leaveapp_password
+-- Se connecter en tant qu'utilisateur applicatif (créé via variables d'env APP_USER)
+CONNECT leaveapp_user/leaveapp_password@XEPDB1
 
 -- Table users
 CREATE TABLE users (
@@ -49,14 +42,14 @@ CREATE TABLE leave_requests (
     CONSTRAINT fk_leave_approved_by FOREIGN KEY (approved_by) REFERENCES users(id)
 );
 
--- Créer les index
+-- Index
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_department ON users(department);
 CREATE INDEX idx_leave_requests_employee ON leave_requests(employee_id);
 CREATE INDEX idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX idx_leave_requests_dates ON leave_requests(start_date, end_date);
 
--- Insérer des données de test
+-- Données de test (mot de passe: bcrypt $2a$10$... = "password")
 INSERT INTO users (email, password, first_name, last_name, department, role) VALUES
 ('admin@company.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDa', 'Admin', 'User', 'IT', 'HR'),
 ('manager@company.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDa', 'Manager', 'User', 'HR', 'MANAGER'),
