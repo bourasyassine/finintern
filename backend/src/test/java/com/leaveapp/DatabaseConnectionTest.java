@@ -13,7 +13,7 @@ import java.sql.SQLException;
 @SpringBootTest
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:oracle:thin:@localhost:1521:ORCLCDB",
+    "spring.datasource.url=jdbc:oracle:thin:@localhost:1521/XEPDB1",
     "spring.datasource.username=leaveapp_user",
     "spring.datasource.password=leaveapp_password"
 })

@@ -91,15 +91,3 @@ export async function getLeaveRequests(type: "my" | "all" | "pending" = "my") {
     }
   }
 }
-
-export async function getAnalytics() {
-  try {
-    const response = await apiService.getAnalytics()
-    return { success: true, analytics: response }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to fetch analytics",
-    }
-  }
-}

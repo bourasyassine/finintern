@@ -44,7 +44,11 @@ class ApiService {
 
   // Leave Requests
   async getMyRequests() {
-    const response = await fetch(`${API_BASE_URL}/leave-requests/my-requests`, {
+    const userId = typeof window !== "undefined" ? localStorage.getItem("auth-user-id") : null
+    const url = userId
+      ? `${API_BASE_URL}/leave-requests/my-requests?employeeId=${encodeURIComponent(userId)}`
+      : `${API_BASE_URL}/leave-requests/my-requests`
+    const response = await fetch(url, {
       headers: this.getAuthHeaders(),
     })
     return this.handleResponse(response)
@@ -65,17 +69,37 @@ class ApiService {
   }
 
   async createLeaveRequest(requestData: {
-    leaveType: string
+    leaveType?: string
+    type?: string
     startDate: string
     endDate: string
     reason: string
     priority?: string
   }) {
+    const userId = typeof window !== "undefined" ? localStorage.getItem("auth-user-id") : null
+
+    const uiType = (requestData as any).leaveType || (requestData as any).type || ""
+    const typeMap: Record<string, string> = {
+      annual_leave: "ANNUAL",
+      sick_leave: "SICK",
+      personal_leave: "PERSONAL",
+      maternity_leave: "MATERNITY",
+      paternity_leave: "PATERNITY",
+      emergency_leave: "EMERGENCY",
+      other: "PERSONAL",
+      unpaid_leave: "PERSONAL",
+    }
+    const backendType = typeMap[uiType as keyof typeof typeMap] || uiType.toUpperCase()
+
     const response = await fetch(`${API_BASE_URL}/leave-requests`, {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
-        ...requestData,
+        employeeId: userId ? Number(userId) : undefined,
+        type: backendType,
+        startDate: requestData.startDate,
+        endDate: requestData.endDate,
+        reason: requestData.reason,
         priority: requestData.priority || "NORMAL",
       }),
     })
@@ -83,7 +107,10 @@ class ApiService {
   }
 
   async approveRequest(requestId: string, comments?: string) {
-    const response = await fetch(`${API_BASE_URL}/leave-requests/${requestId}/approve`, {
+    const userId = typeof window !== "undefined" ? localStorage.getItem("auth-user-id") : null
+    const response = await fetch(`${API_BASE_URL}/leave-requests/${requestId}/approve?approverId=${encodeURIComponent(
+      userId || ""
+    )}`, {
       method: "PATCH",
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ comments: comments || "" }),
@@ -92,7 +119,10 @@ class ApiService {
   }
 
   async rejectRequest(requestId: string, comments: string) {
-    const response = await fetch(`${API_BASE_URL}/leave-requests/${requestId}/reject`, {
+    const userId = typeof window !== "undefined" ? localStorage.getItem("auth-user-id") : null
+    const response = await fetch(`${API_BASE_URL}/leave-requests/${requestId}/reject?approverId=${encodeURIComponent(
+      userId || ""
+    )}`, {
       method: "PATCH",
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ comments }),

@@ -24,13 +24,13 @@ docker pull container-registry.oracle.com/database/express:21.3.0-xe
 #### B. Démarrer Oracle Database
 ```bash
 cd backend
-docker-compose up -d
+docker compose up -d
 ```
 
 #### C. Vérifier que le conteneur fonctionne
 ```bash
-docker-compose ps
-docker-compose logs oracle
+docker compose ps
+docker compose logs oracle
 ```
 
 ### 2. Configuration de SQL Developer
@@ -44,8 +44,7 @@ docker-compose logs oracle
    - **Password** : leaveapp_password
    - **Hostname** : localhost
    - **Port** : 1521
-   - **SID** : ORCLCDB
-   - **Service name** : ORCLCDB
+   - **Service name** : XEPDB1
 
 #### B. Tester la connexion
 1. Cliquez sur "Test" pour vérifier la connexion
@@ -76,13 +75,13 @@ Créez un fichier `.env` dans le dossier `backend/` :
 ```bash
 DB_USERNAME=leaveapp_user
 DB_PASSWORD=leaveapp_password
-DB_URL=jdbc:oracle:thin:@localhost:1521:ORCLCDB
+DB_URL=jdbc:oracle:thin:@localhost:1521/XEPDB1
 ```
 
 #### B. Lancement de l'application
 ```bash
 cd backend
-mvn clean install
+mvn -q -DskipTests package
 mvn spring-boot:run -Dspring.profiles.active=dev
 ```
 
@@ -103,22 +102,22 @@ mvn test -Dtest=DatabaseConnectionTest
 
 ```bash
 # Démarrer Oracle
-docker-compose up -d
+docker compose up -d
 
 # Arrêter Oracle
-docker-compose down
+docker compose down
 
 # Voir les logs
-docker-compose logs oracle
+docker compose logs oracle
 
 # Accéder au conteneur
 docker exec -it oracle-db bash
 
 # Vérifier l'état du conteneur
-docker-compose ps
+docker compose ps
 
 # Redémarrer Oracle
-docker-compose restart oracle
+docker compose restart oracle
 ```
 
 ## Dépannage
@@ -128,19 +127,19 @@ docker-compose restart oracle
 1. **Erreur de connexion** :
    ```bash
    # Vérifier que le conteneur fonctionne
-   docker-compose ps
+   docker compose ps
    
    # Vérifier les logs
-   docker-compose logs oracle
+   docker compose logs oracle
    
    # Redémarrer si nécessaire
-   docker-compose restart oracle
+   docker compose restart oracle
    ```
 
 2. **Port déjà utilisé** :
    ```bash
    # Vérifier les ports utilisés
-   netstat -an | grep 1521
+   lsof -i :1521
    
    # Modifier le port dans docker-compose.yml si nécessaire
    ```
@@ -151,20 +150,20 @@ docker-compose restart oracle
    docker exec -it oracle-db bash
    
    # Se connecter en tant que sysdba
-   sqlplus sys/oracle_password@//localhost:1521/ORCLCDB as sysdba
+   sqlplus sys/oracle_password@//localhost:1521/XEPDB1 as sysdba
    ```
 
 ### Vérifications importantes
 
 1. **Oracle Database est démarré** :
    ```bash
-   docker-compose ps
+   docker compose ps
    # Doit afficher "Up" pour le service oracle
    ```
 
 2. **Port 1521 est accessible** :
    ```bash
-   telnet localhost 1521
+   nc -zv localhost 1521
    # Doit se connecter
    ```
 
@@ -198,8 +197,8 @@ backend/
 
 ```bash
 # Sauvegarder les données
-docker exec oracle-db expdp leaveapp_user/leaveapp_password@ORCLCDB directory=DATA_PUMP_DIR dumpfile=leaveapp_backup.dmp
+docker exec oracle-db expdp leaveapp_user/leaveapp_password@XEPDB1 directory=DATA_PUMP_DIR dumpfile=leaveapp_backup.dmp
 
 # Restaurer les données
-docker exec oracle-db impdp leaveapp_user/leaveapp_password@ORCLCDB directory=DATA_PUMP_DIR dumpfile=leaveapp_backup.dmp
+docker exec oracle-db impdp leaveapp_user/leaveapp_password@XEPDB1 directory=DATA_PUMP_DIR dumpfile=leaveapp_backup.dmp
 ``` 
