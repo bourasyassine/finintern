@@ -47,23 +47,22 @@ export default function LoginPage() {
     try {
       const result = await login(formData.email, formData.password)
 
-      if (result.success && user) {
+      if (result.success) {
+        const saved = typeof window !== "undefined" ? localStorage.getItem("auth-user") : null
+        const u = saved ? JSON.parse(saved) : null
+
         toast({
           title: "Connexion réussie",
-          description: `Bienvenue ${user.firstName} !`,
+          description: u?.firstName ? `Bienvenue ${u.firstName} !` : "Bienvenue !",
         })
 
-        // Redirect based on user role
-        switch (user.role) {
-          case "hr":
-          case "manager":
-            router.push("/hr-dashboard")
-            break
-          case "employee":
-            router.push("/employee-dashboard")
-            break
-          default:
-            router.push("/")
+        const role = u?.role
+        if (role === "hr" || role === "manager") {
+          router.push("/hr-dashboard")
+        } else if (role === "employee") {
+          router.push("/employee-dashboard")
+        } else {
+          router.push("/")
         }
       } else {
         toast({
