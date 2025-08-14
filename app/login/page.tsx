@@ -83,36 +83,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = async (role: UserRole) => {
-    setIsLoading(true)
-
-    try {
-      const result = await loginAsDemo(role)
-
-      if (result.success) {
-        toast({
-          title: "Connexion démo réussie",
-          description: `Bienvenue sur le compte ${role === "hr" ? "RH" : role === "manager" ? "Manager" : "Employé"} !`,
-        })
-
-        // Redirect based on role
-        if (role === "hr" || role === "manager") {
-          router.push("/hr-dashboard")
-        } else {
-          router.push("/employee-dashboard")
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -177,40 +147,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Ou essayez avec</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleDemoLogin("employee")}
-              disabled={isLoading}
-            >
-              <User className="h-4 w-4 mr-2" />
-              Demo Employé
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleDemoLogin("manager")}
-              disabled={isLoading}
-            >
-              <User className="h-4 w-4 mr-2" />
-              Demo Manager
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => handleDemoLogin("hr")} disabled={isLoading}>
-              <User className="h-4 w-4 mr-2" />
-              Demo HR
-            </Button>
-          </div>
 
           <div className="text-center">
             <Button variant="link" className="text-sm" onClick={() => router.push("/register")}>

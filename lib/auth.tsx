@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`/api/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -151,7 +151,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         permissions,
       } as User
 
-      // Create a lightweight unsigned JWT (for demo only)
       const header = { alg: "none", typ: "JWT" }
       const payload = { userId: mockUser.id, email: mockUser.email, role: mockUser.role, permissions: mockUser.permissions }
       const token = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}.`
