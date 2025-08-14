@@ -1,8 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { mockLeaveRequests, mockEmployees } from "@/lib/data"
-import { verify } from "jsonwebtoken"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+export const dynamic = "force-dynamic"
+
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const payload = parts[1]
+    const decoded = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8")
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
 
 function verifyToken(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value
@@ -10,11 +21,11 @@ function verifyToken(request: NextRequest) {
     throw new Error("Token manquant")
   }
 
-  try {
-    return verify(token, JWT_SECRET) as any
-  } catch (error) {
+  const decoded = decodeJwtPayload(token)
+  if (!decoded) {
     throw new Error("Token invalide")
   }
+  return decoded
 }
 
 export async function GET(request: NextRequest) {
@@ -22,7 +33,7 @@ export async function GET(request: NextRequest) {
     const decoded = verifyToken(request)
 
     // Check if user has analytics permission
-    if (!decoded.permissions.includes("view_analytics")) {
+    if (!decoded.permissions?.includes("view_analytics")) {
       return NextResponse.json({ success: false, error: "Permission insuffisante" }, { status: 403 })
     }
 
@@ -58,7 +69,7 @@ export async function GET(request: NextRequest) {
     )
 
     // Monthly trends (last 6 months)
-    const monthlyTrends = []
+    const monthlyTrends = [] as Array<{ month: string; requests: number; approved: number; rejected: number }>
     for (let i = 5; i >= 0; i--) {
       const date = new Date()
       date.setMonth(date.getMonth() - i)

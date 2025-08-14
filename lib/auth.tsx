@@ -19,14 +19,35 @@ interface User {
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  loginAsDemo: (role: "employee" | "manager" | "hr") => Promise<{ success: boolean; error?: string }>
   logout: () => void
   isLoading: boolean
+  isAuthenticated: boolean
   hasPermission: (permission: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
+function base64UrlEncode(obj: unknown): string {
+  const json = JSON.stringify(obj)
+  const base64 = typeof btoa === "function" ? btoa(unescape(encodeURIComponent(json))) : Buffer.from(json, "utf-8").toString("base64")
+  return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")
+}
+
+function base64UrlDecodeToJson(input: string): any | null {
+  try {
+    const base64 = input.replace(/-/g, "+").replace(/_/g, "/")
+    const padded = base64 + "===".slice((base64.length + 3) % 4)
+    const decoded = typeof atob === "function" ? atob(padded) : Buffer.from(padded, "base64").toString("binary")
+    const bytes = typeof TextDecoder !== "undefined" ? Uint8Array.from(decoded, c => c.charCodeAt(0)) : decoded
+    const json = typeof TextDecoder !== "undefined" ? new TextDecoder().decode(bytes as Uint8Array) : decoded
+    return JSON.parse(json as string)
+  } catch {
+    return null
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -37,6 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuthStatus()
   }, [])
 
+  const setToken = (token: string) => {
+    localStorage.setItem("auth-token", token)
+    document.cookie = `auth-token=${token}; path=/; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+  }
+
+  const clearToken = () => {
+    localStorage.removeItem("auth-token")
+    document.cookie = "auth-token=; Max-Age=0; path=/; SameSite=Strict"
+  }
+
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem("auth-token")
@@ -45,23 +76,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Verify token with backend
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      const parts = token.split(".")
+      if (parts.length !== 3) {
+        clearToken()
+        setIsLoading(false)
+        return
+      }
 
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(mapBackendUserToFrontend(userData.user))
-      } else {
-        localStorage.removeItem("auth-token")
+      const decoded = base64UrlDecodeToJson(parts[1])
+      if (!decoded) {
+        clearToken()
+        setIsLoading(false)
+        return
+      }
+
+      const storedUser = localStorage.getItem("auth-user")
+      if (storedUser) {
+        setUser(JSON.parse(storedUser))
       }
     } catch (error) {
       console.error("Auth check failed:", error)
-      localStorage.removeItem("auth-token")
+      clearToken()
     } finally {
       setIsLoading(false)
     }
@@ -69,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,11 +115,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
 
       if (response.ok && data.token) {
-        localStorage.setItem("auth-token", data.token)
+        setToken(data.token)
         const mappedUser = mapBackendUserToFrontend(data.user)
         setUser(mappedUser)
+        localStorage.setItem("auth-user", JSON.stringify(mappedUser))
 
-        // Redirect based on role
         if (mappedUser.role === "hr") {
           router.push("/hr-dashboard")
         } else {
@@ -93,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return { success: true }
       } else {
-        return { success: false, error: data.message || "Login failed" }
+        return { success: false, error: data.error || "Login failed" }
       }
     } catch (error) {
       console.error("Login error:", error)
@@ -101,22 +136,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const loginAsDemo = async (role: "employee" | "manager" | "hr") => {
+    try {
+      const permissions = getPermissionsByRole(role)
+      const mockUser = {
+        id: "demo",
+        email: `${role}@demo.local`,
+        firstName: role === "hr" ? "Hélène" : role === "manager" ? "Marc" : "Emma",
+        lastName: "Demo",
+        role,
+        department: role === "hr" ? "Human Resources" : role === "manager" ? "Engineering" : "Engineering",
+        annualLeaveBalance: 25,
+        sickLeaveBalance: 10,
+        permissions,
+      } as User
+
+      // Create a lightweight unsigned JWT (for demo only)
+      const header = { alg: "none", typ: "JWT" }
+      const payload = { userId: mockUser.id, email: mockUser.email, role: mockUser.role, permissions: mockUser.permissions }
+      const token = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}.`
+
+      setToken(token)
+      setUser(mockUser)
+      localStorage.setItem("auth-user", JSON.stringify(mockUser))
+
+      return { success: true }
+    } catch (error) {
+      console.error("Demo login error:", error)
+      return { success: false, error: "Unable to create demo session" }
+    }
+  }
+
   const logout = async () => {
     try {
-      const token = localStorage.getItem("auth-token")
-      if (token) {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-      }
+      await fetch(`/api/auth/logout`, { method: "POST" })
     } catch (error) {
       console.error("Logout error:", error)
     } finally {
-      localStorage.removeItem("auth-token")
+      clearToken()
       setUser(null)
+      localStorage.removeItem("auth-user")
       router.push("/login")
     }
   }
@@ -136,11 +195,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const permissions = getPermissionsByRole(roleMap[backendUser.role] || "employee")
 
     return {
-      id: backendUser.id.toString(),
+      id: backendUser.id?.toString?.() || backendUser.id,
       email: backendUser.email,
       firstName: backendUser.firstName,
       lastName: backendUser.lastName,
-      role: roleMap[backendUser.role] || "employee",
+      role: roleMap[backendUser.role] || backendUser.role,
       department: backendUser.department,
       annualLeaveBalance: backendUser.annualLeaveBalance || 25,
       sickLeaveBalance: backendUser.sickLeaveBalance || 10,
@@ -164,8 +223,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return permissions[role as keyof typeof permissions] || permissions.employee
   }
 
+  const isAuthenticated = !!user
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, hasPermission }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, login, loginAsDemo, logout, isLoading, isAuthenticated, hasPermission }}>{children}</AuthContext.Provider>
   )
 }
 

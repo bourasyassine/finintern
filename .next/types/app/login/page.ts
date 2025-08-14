@@ -1,4 +1,4 @@
-// File: C:\Users\MSI\Desktop\finintern\app\login\page.tsx
+// File: /workspace/app/login/page.tsx
 import * as entry from '../../../../app/login/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
