@@ -4,18 +4,18 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, User, Building } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, Building } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth, type UserRole } from "@/lib/auth"
+import { useAuth } from "@/lib/auth"
 
 export default function LoginPage() {
   const { toast } = useToast()
   const router = useRouter()
-  const { login, loginAsDemo, isAuthenticated, user } = useAuth()
+  const { login, isAuthenticated, user } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -23,7 +23,6 @@ export default function LoginPage() {
     password: "",
   })
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       switch (user.role) {
@@ -148,7 +147,7 @@ export default function LoginPage() {
           </form>
 
           <div className="text-center">
-            <Button variant="link" className="text-sm" onClick={() => router.push("/register")}>
+            <Button variant="link" className="text-sm" onClick={() => router.push("/register")}> 
               Pas encore de compte ? S'inscrire
             </Button>
           </div>
