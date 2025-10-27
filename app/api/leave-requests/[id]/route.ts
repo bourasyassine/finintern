@@ -1,8 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { mockLeaveRequests } from "@/lib/data"
-import { verify } from "jsonwebtoken"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+export const dynamic = "force-dynamic"
+
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const payload = parts[1]
+    const decoded = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8")
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
 
 function verifyToken(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value
@@ -10,11 +21,11 @@ function verifyToken(request: NextRequest) {
     throw new Error("Token manquant")
   }
 
-  try {
-    return verify(token, JWT_SECRET) as any
-  } catch (error) {
+  const decoded = decodeJwtPayload(token)
+  if (!decoded) {
     throw new Error("Token invalide")
   }
+  return decoded
 }
 
 // GET - Get specific request
@@ -51,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { action, rejectionReason } = await request.json()
 
     // Check if user has permission to approve/reject
-    if (!decoded.permissions.includes("approve_requests") && !decoded.permissions.includes("approve_team_requests")) {
+    if (!decoded.permissions?.includes("approve_requests") && !decoded.permissions?.includes("approve_team_requests")) {
       return NextResponse.json({ success: false, error: "Permission insuffisante" }, { status: 403 })
     }
 

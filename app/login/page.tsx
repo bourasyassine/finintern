@@ -4,18 +4,18 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, User, Building } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, Building } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth, type UserRole } from "@/lib/auth"
+import { useAuth } from "@/lib/auth"
 
 export default function LoginPage() {
   const { toast } = useToast()
   const router = useRouter()
-  const { login, loginAsDemo, isAuthenticated, user } = useAuth()
+  const { login, isAuthenticated, user } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -23,7 +23,6 @@ export default function LoginPage() {
     password: "",
   })
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       switch (user.role) {
@@ -47,23 +46,22 @@ export default function LoginPage() {
     try {
       const result = await login(formData.email, formData.password)
 
-      if (result.success && user) {
+      if (result.success) {
+        const saved = typeof window !== "undefined" ? localStorage.getItem("auth-user") : null
+        const u = saved ? JSON.parse(saved) : null
+
         toast({
           title: "Connexion réussie",
-          description: `Bienvenue ${user.firstName} !`,
+          description: u?.firstName ? `Bienvenue ${u.firstName} !` : "Bienvenue !",
         })
 
-        // Redirect based on user role
-        switch (user.role) {
-          case "hr":
-          case "manager":
-            router.push("/hr-dashboard")
-            break
-          case "employee":
-            router.push("/employee-dashboard")
-            break
-          default:
-            router.push("/")
+        const role = u?.role
+        if (role === "hr" || role === "manager") {
+          router.push("/hr-dashboard")
+        } else if (role === "employee") {
+          router.push("/employee-dashboard")
+        } else {
+          router.push("/")
         }
       } else {
         toast({
@@ -76,36 +74,6 @@ export default function LoginPage() {
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la connexion",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDemoLogin = async (role: UserRole) => {
-    setIsLoading(true)
-
-    try {
-      const result = await loginAsDemo(role)
-
-      if (result.success) {
-        toast({
-          title: "Connexion démo réussie",
-          description: `Bienvenue sur le compte ${role === "hr" ? "RH" : role === "manager" ? "Manager" : "Employé"} !`,
-        })
-
-        // Redirect based on role
-        if (role === "hr" || role === "manager") {
-          router.push("/hr-dashboard")
-        } else {
-          router.push("/employee-dashboard")
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue",
         variant: "destructive",
       })
     } finally {
@@ -178,42 +146,8 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Ou essayez avec</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleDemoLogin("employee")}
-              disabled={isLoading}
-            >
-              <User className="h-4 w-4 mr-2" />
-              Demo Employé
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleDemoLogin("manager")}
-              disabled={isLoading}
-            >
-              <User className="h-4 w-4 mr-2" />
-              Demo Manager
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => handleDemoLogin("hr")} disabled={isLoading}>
-              <User className="h-4 w-4 mr-2" />
-              Demo HR
-            </Button>
-          </div>
-
           <div className="text-center">
-            <Button variant="link" className="text-sm" onClick={() => router.push("/register")}>
+            <Button variant="link" className="text-sm" onClick={() => router.push("/register")}> 
               Pas encore de compte ? S'inscrire
             </Button>
           </div>

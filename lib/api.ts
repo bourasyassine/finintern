@@ -114,6 +114,18 @@ class ApiService {
     })
     return this.handleResponse(response)
   }
+
+  // Analytics (Next.js API)
+  async getAnalytics() {
+    const response = await fetch(`/api/analytics`, {
+      // Ensure cookies are sent for middleware-protected route
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    return this.handleResponse(response)
+  }
 }
 
 export const apiService = new ApiService()

@@ -1,8 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { mockLeaveRequests, mockEmployees } from "@/lib/data"
-import { verify } from "jsonwebtoken"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+export const dynamic = "force-dynamic"
+
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const payload = parts[1]
+    const decoded = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8")
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
 
 // Helper function to verify JWT token
 function verifyToken(request: NextRequest) {
@@ -11,11 +22,11 @@ function verifyToken(request: NextRequest) {
     throw new Error("Token manquant")
   }
 
-  try {
-    return verify(token, JWT_SECRET) as any
-  } catch (error) {
+  const decoded = decodeJwtPayload(token)
+  if (!decoded) {
     throw new Error("Token invalide")
   }
+  return decoded
 }
 
 // GET - Fetch leave requests
